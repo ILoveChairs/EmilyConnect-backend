@@ -1,0 +1,21 @@
+{
+  "configVersion": 2,
+  "packages": [
+    {
+      "name": "csv",
+      "rootUri": "file:///root/.pub-cache/hosted/pub.dev/csv-6.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "backend",
+      "rootUri": "../",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    }
+  ],
+  "generated": "2024-10-01T18:08:58.769868Z",
+  "generator": "pub",
+  "generatorVersion": "3.5.3",
+  "pubCache": "file:///root/.pub-cache"
+}

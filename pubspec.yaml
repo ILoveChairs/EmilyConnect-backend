@@ -1,0 +1,6 @@
+name:
+  backend
+environment:
+  sdk: ^3.0.0
+dependencies:
+  csv: ^6.0.0
