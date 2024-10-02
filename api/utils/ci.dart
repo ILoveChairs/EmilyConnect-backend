@@ -9,12 +9,12 @@ bool ciValidate(String ci) {
   // Check if all characters are numbers and if last digit is correct
   // For CI check:
   // https://forum.openoffice.org/es/forum/viewtopic.php?t=7649
-  const List<int> ciConstants = [2, 9, 8, 7, 6, 3, 4];
+  const ciConstants = <int>[2, 9, 8, 7, 6, 3, 4];
 
-  int sum = 0;
-  int i = 0;
+  var sum = 0;
+  var i = 0;
   for (; i < ciConstants.length; i++) {
-    int? ciDigit = int.tryParse(ci[i]);
+    var ciDigit = int.tryParse(ci[i]);
     if (ciDigit == null) {
       print('non number in ci: ${ci[i]}');
       return false;
@@ -22,13 +22,13 @@ bool ciValidate(String ci) {
     sum += ciDigit * ciConstants[i];
   }
 
-  final int? lastDigit = int.tryParse(ci[i]);
+  final lastDigit = int.tryParse(ci[i]);
   if (lastDigit == null) {
     print('non number in ci: ${ci[i]}');
     return false;
   }
 
-  final int verificatorDigit = (10 - (sum % 10)) % 10;
+  final verificatorDigit = (10 - (sum % 10)) % 10;
   if (lastDigit != verificatorDigit) {
     print('verificator digit is incorrect: $verificatorDigit');
     return false;
@@ -39,8 +39,8 @@ bool ciValidate(String ci) {
 
 
 class CI {
-  String ci;
   CI(this.ci): assert(ciValidate(ci));
+  String ci;
 
   @override
   String toString() {
