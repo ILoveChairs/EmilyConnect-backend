@@ -9,14 +9,17 @@ import '../../routes/index.dart' as route;
 class _MockRequestContext extends Mock implements RequestContext {}
 
 void main() {
-  group('GET /', () {
-    test('responds with a 200 and "Welcome to Dart Frog!".', () {
+  group('Errors', () {
+    test('Invalid GET method', () async {
       final context = _MockRequestContext();
-      final response = route.onRequest(context);
-      expect(response.statusCode, equals(HttpStatus.ok));
+      final response = await route.onRequest(context);
+      when(() => context.read<Map<String, dynamic>>()).thenReturn(
+        {'ci': '54910817', 'password': 'Holamundo'},
+      );
+      expect(response.statusCode, equals(HttpStatus.methodNotAllowed));
       expect(
-        response.body(),
-        completion(equals('Welcome to Dart Frog!')),
+        response.json(),
+        completion(equals({'error': 'Method Not Allowed'})),
       );
     });
   });
