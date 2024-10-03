@@ -58,7 +58,9 @@ Future<Response> onRequest(RequestContext context) async {
     return badRequest();
   }
 
-  // Try to generate token
+  // TODO(ILoveChairs): do auth
+
+  // Generate token
   final token = await auth.createCustomToken(ci);
 
   // Return token (200)

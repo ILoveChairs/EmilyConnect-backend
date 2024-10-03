@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dart_firebase_admin/auth.dart';
 import 'package:dart_firebase_admin/dart_firebase_admin.dart';
+import 'package:dart_firebase_admin/firestore.dart';
 //import 'package:dart_firebase_admin/firestore.dart';
 
 /// 
@@ -25,4 +26,5 @@ final admin = FirebaseAdminApp.initializeApp(
 );
 
 //final firestore = Firestore(admin);
+final firestore = Firestore(admin);
 final auth = Auth(admin);
