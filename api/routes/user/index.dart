@@ -4,6 +4,7 @@ import 'package:dart_frog/dart_frog.dart';
 import '../../utils/ci.dart';
 import '../../utils/firebase.dart';
 import '../../utils/responses.dart';
+import '../../utils/roles.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   /**
@@ -16,7 +17,8 @@ Future<Response> onRequest(RequestContext context) async {
    * EXPECTED POST BODY: {
    *  ci: <string>,
    *  first_name: <string>,
-   *  last_name: <string>
+   *  last_name: <string>,
+   *  role: <string> (optional)
    * }
    * ON SUCCESS: 201
    * ON ERROR: 400, 503 => {'error': <string>}
@@ -82,7 +84,8 @@ Future<Response> postRequest(
    * EXPECTED POST BODY: {
    *  ci: <string>,
    *  first_name: <string>,
-   *  last_name: <string>
+   *  last_name: <string>,
+   *  role: <string> (optional)
    * }
    * ON SUCCESS: 201
    * ON ERROR: 400, 503 => {'error': <string>}
@@ -96,6 +99,7 @@ Future<Response> postRequest(
   final ci = json['ci'];
   final firstName = json['first_name'];
   final lastName = json['last_name'];
+  final role = json['role'];
   if (
     ci == null ||
     ci is! String ||
@@ -105,6 +109,13 @@ Future<Response> postRequest(
     lastName is! String ||
     !ciValidate(ci)
   ) {
+    return badRequest();
+  }
+  if (role != null && role is! String) {
+    return badRequest();
+  }
+  // I do not trust the &&
+  if (role != null && !isRole(role as String)) {
     return badRequest();
   }
 
@@ -119,10 +130,16 @@ Future<Response> postRequest(
   // Calls Firebase Auth and Firestore to create user !=(503)
   try {
     await auth.createUser(createUserRequest);
-    await firestore.collection('User').doc(ci).set({
-      'first_name': firstName,
-      'last_name': lastName,
-    });
+    await firestore.collection('User').doc(ci).set(
+      role == null ? {
+        'first_name': firstName,
+        'last_name': lastName,
+      } : {
+        'first_name': firstName,
+        'last_name': lastName,
+        'role': role,
+      },
+    );
   } catch (err) {
     return serviceUnavailable();
   }

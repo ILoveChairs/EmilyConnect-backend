@@ -4,6 +4,7 @@ import 'package:dart_frog/dart_frog.dart';
 import '../../utils/ci.dart';
 import '../../utils/firebase.dart';
 import '../../utils/responses.dart';
+import '../../utils/roles.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   /**
@@ -19,7 +20,8 @@ Future<Response> onRequest(RequestContext context) async {
    *    {
    *      ci: <string>,
    *      first_name: <string>,
-   *      last_name: <string>
+   *      last_name: <string>,
+   *      role: <string> (optional)
    *    }
    *  ]
    * }
@@ -93,7 +95,8 @@ Future<Response> postRequest(
    *    {
    *      ci: <string>,
    *      first_name: <string>,
-   *      last_name: <string>
+   *      last_name: <string>,
+   *      role: <string> (optional)
    *    }
    *  ]
    * }
@@ -120,6 +123,7 @@ Future<Response> postRequest(
     final ci = user['ci'];
     final firstName = user['first_name'];
     final lastName = user['last_name'];
+    final role = user['role'];
     if (
       ci == null ||
       ci is! String ||
@@ -129,6 +133,13 @@ Future<Response> postRequest(
       lastName is! String ||
       !ciValidate(ci)
     ) {
+      return badRequest();
+    }
+    if (role != null && role is! String) {
+      return badRequest();
+    }
+    // I do not trust the &&
+    if (role != null && !isRole(role as String)) {
       return badRequest();
     }
   }
@@ -152,10 +163,16 @@ Future<Response> postRequest(
     try {
       await auth.createUser(userRequestList[i]);
       final user = checkedUserList[i];
-      await firestore.collection('User').doc(user['ci']).set({
-        'first_name': user['first_name'],
-        'last_name': user['last_name'],
-      });
+      await firestore.collection('User').doc(user['ci']).set(
+        user['role'] == null ? {
+          'first_name': user['firstName'],
+          'last_name': user['lastName'],
+        } : {
+          'first_name': user['firstName'],
+          'last_name': user['lastName'],
+          'role': user['role'],
+        },
+      );
     } catch (err) {
       // Do nothing
       // TODO(ILoveChairs): List of errors

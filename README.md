@@ -24,7 +24,8 @@ For all endpoints the following is required:
 EXPECTED POST BODY: {
  ci: <string>,
  first_name: <string>,
- last_name: <string>
+ last_name: <string>,
+ role: <string> (optional)
 }
 ON SUCCESS: 201
 ON ERROR: 400, 503 => {'error': <string>}
@@ -45,7 +46,8 @@ EXPECTED POST BODY: {
    {
      ci: <string>,
      first_name: <string>,
-     last_name: <string>
+     last_name: <string>,
+     role: <string> (optional)
    }
  ]
 }
