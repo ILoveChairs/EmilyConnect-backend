@@ -1,13 +1,20 @@
 
 bool ciValidate(String ci) {
+  /**
+   * Validates that a uruguayan CI document is valid.
+   * 
+   * For more information about the validation check:
+   * https://forum.openoffice.org/es/forum/viewtopic.php?t=7649
+   * 
+   * Might be deleted in the future.
+   */
+
   // Check length
   if (ci.length != 8) {
     return false;
   }
 
   // Check if all characters are numbers and if last digit is correct
-  // For CI check:
-  // https://forum.openoffice.org/es/forum/viewtopic.php?t=7649
   const ciConstants = <int>[2, 9, 8, 7, 6, 3, 4];
 
   var sum = 0;

@@ -1,53 +1,5 @@
+
 import 'package:dart_frog/dart_frog.dart';
-
-import '../../../utils/firebase.dart';
-
-Future<Response> onRequest(RequestContext context) async {
-  /**
-   * 
-   */
-
-  // Rename
-  final request = context.request;
-
-  // Check that method is DELETE !=(405)
-  if (request.method != HttpMethod.delete) {
-    return methodNotAllowed();
-  }
-
-  // Check that body is json with header !=(406)
-  if (request.headers['Content-Type'] != 'application/json') {
-    return notAcceptable();
-  }
-
-  // Try to get json !=(400)
-  final Map<String, dynamic> json;
-  try {
-    json = await request.json() as Map<String, dynamic>;
-  } catch (err) {
-    return badRequest();
-  }
-
-  // Validate fields !=(400)
-  final ci = json['ci'];
-  if (
-    ci == null ||
-    ci is! String
-  ) {
-    return badRequest();
-  }
-
-  // Calls Firebase Auth to delete user !=(503)
-  try {
-    await auth.deleteUser(ci);
-  } catch (err) {
-    return serviceUnavailable();
-  }
-
-  // Returns appropiate response
-  return Response(statusCode: 201);
-}
-
 
 /// 
 /// ERROR RESPONSES

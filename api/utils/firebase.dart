@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:dart_firebase_admin/auth.dart';
 import 'package:dart_firebase_admin/dart_firebase_admin.dart';
 import 'package:dart_firebase_admin/firestore.dart';
-//import 'package:dart_firebase_admin/firestore.dart';
 
 /// 
 /// Instanciates firebase connections.
@@ -14,7 +13,7 @@ import 'package:dart_firebase_admin/firestore.dart';
 /// in the firebase app in the gear top left, users and permissions,
 /// account services, firebase admin key, generate new private key.
 /// 
-/// For more information about the sdk being used:
+/// For more information about the sdk being used for the connection:
 /// https://github.com/invertase/dart_firebase_admin?tab=readme-ov-file#connecting-to-the-sdk
 /// 
 
@@ -25,6 +24,5 @@ final admin = FirebaseAdminApp.initializeApp(
   ),
 );
 
-//final firestore = Firestore(admin);
 final firestore = Firestore(admin);
 final auth = Auth(admin);
