@@ -5,8 +5,10 @@ import 'package:dart_frog_request_logger/dart_frog_request_logger.dart';
 
 import '../../utils/ci.dart';
 import '../../utils/firebase.dart';
+import '../../utils/firestore_names.dart';
 import '../../utils/responses.dart';
 import '../../utils/roles.dart';
+import '../../utils/user_seek_and_destroy.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   /// PATH: /user/multiple
@@ -150,17 +152,18 @@ Future<Response> postRequest(
       return badRequest();
     }
   }
-  final checkedUserList = userList as List<Map<String, String>>;
+  final checkedUserList = userList.cast<Map<String, dynamic>>();
 
   // Creates request to create user
   final userRequestList = <CreateRequest>[];
   for (final user in checkedUserList) {
+    final ci = user['ci'] as String;
     userRequestList.add(
       CreateRequest(
-        uid: user['ci'],
-        email: '${user["ci"]}@emilydickenson.com',
-        password: user['ci'],
-        displayName: user['ci'],
+        uid: ci,
+        email: '$ci@emilydickenson.com',
+        password: ci,
+        displayName: ci,
       ),
     );
   }
@@ -171,34 +174,37 @@ Future<Response> postRequest(
   // Calls Firebase Auth to create user !=(503)
   for (var i = 0; i < checkedUserList.length; i++) {
     final user = checkedUserList[i];
+    final ci = user['ci'] as String;
+    final firstName = user['first_name'] as String;
+    final lastName = user['last_name'] as String;
     try {
       await auth.createUser(userRequestList[i]);
-      await firestore.collection('User').doc(user['ci']).set(
+      await firestore.collection(usersCollection).doc(ci).set(
         user['role'] == null ? {
-          'first_name': user['firstName'],
-          'last_name': user['lastName'],
+          'first_name': firstName,
+          'last_name': lastName,
         } : {
-          'first_name': user['firstName'],
-          'last_name': user['lastName'],
+          'first_name': firstName,
+          'last_name': lastName,
           'role': user['role'],
         },
       );
-      results[user['ci']!] = 'User created';
+      results[ci] = 'User created';
     } catch (err) {
       // Errors will be added to results
       if (err is FirebaseAuthAdminException) {
-        results[user['ci']!] = err.message;
+        results[ci] = err.message;
       } else if (err is FirebaseFirestoreAdminException) {
         // It will try to delete the auth user when firestore save fails
         try {
-          await auth.deleteUser(user['ci']!);
+          await auth.deleteUser(ci);
         } catch (nerr) {
           // Do nothing
         }
-        results[user['ci']!] = err.message;
+        results[ci] = err.message;
       } else {
         logger.error(err.toString());
-        results[user['ci']!] = 'Unexpected error';
+        results[ci] = 'Unexpected error';
       }
     }
   }
@@ -224,11 +230,7 @@ Future<Response> deleteRequest(
   if (userList == null || userList is! List || userList.isEmpty) {
     return badRequest();
   }
-  for (final user in userList) {
-    if (user is! Map) {
-      return badRequest();
-    }
-    final ci = user['ci'];
+  for (final ci in userList) {
     if (
       ci == null ||
       ci is! String
@@ -237,21 +239,17 @@ Future<Response> deleteRequest(
     }
   }
 
-  // Creates list to store results of user creations
-  final results = <String>[];
-
-  // Calls Firebase Auth to delete users (does not produce errors)
-  final deletion = await auth.deleteUsers(userList as List<String>);
-  for (final err in deletion.errors) {
-    results[err.index] = err.error.message;
+  for (var i = 0; i < userList.length; i++) {
+    final ci = userList[i] as String;
+    // Auth delete
+    await auth.deleteUser(ci);
+    // Users collection delete
+    await firestore.collection(usersCollection).doc(ci).delete();
+    // Classes/students delete
+    await userSeekAndDestroy(ci);
   }
 
-  // TODO(ILoveChairs): Implement user Seek And Destroy
-
   // Returns appropiate response
-  logger.normal('number of users deleted: ${deletion.successCount}/${deletion.failureCount}');
-  return Response.json(
-    headers: {'Content-Type': 'application/json'},
-    body: {'results': results},
-  );
+  logger.normal('users deleted: $userList');
+  return Response(statusCode: 204);
 }

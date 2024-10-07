@@ -15,6 +15,8 @@ bool ciValidate(String ci) {
   }
 
   // Check if all characters are numbers and if last digit is correct
+  // ! DISABLED
+  /*
   const ciConstants = <int>[2, 9, 8, 7, 6, 3, 4];
 
   var sum = 0;
@@ -36,6 +38,7 @@ bool ciValidate(String ci) {
   if (lastDigit != verificatorDigit) {
     return false;
   }
+  */
 
   return true;
 }

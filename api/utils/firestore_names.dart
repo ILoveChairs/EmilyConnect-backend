@@ -1,3 +1,3 @@
 
-const usersCollection = 'User';
-const classesCollection = 'Classes';
+const usersCollection = 'users';
+const coursesCollection = 'classes';

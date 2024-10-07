@@ -8,6 +8,7 @@ import '../../utils/firebase.dart';
 import '../../utils/firestore_names.dart';
 import '../../utils/responses.dart';
 import '../../utils/roles.dart';
+import '../../utils/user_seek_and_destroy.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   /// PATH: /user
@@ -190,8 +191,12 @@ Future<Response> deleteRequest(
 
   // Calls Firebase Auth to delete user !=(503)
   try {
+    // Auth delete
     await auth.deleteUser(ci);
+    // Users collection delete
     await firestore.collection(usersCollection).doc(ci).delete();
+    // Classes/students delete
+    await userSeekAndDestroy(ci);
   } catch (err) {
     if (err is FirebaseAuthAdminException) {
       if (err.errorCode == AuthClientErrorCode.userNotFound) {
@@ -203,8 +208,6 @@ Future<Response> deleteRequest(
       return serviceUnavailable(msg: 'Unexpected error.');
     }
   }
-
-  // TODO(ILoveChairs): Implement user Search and Destroy
 
   // Returns appropiate response
   logger.log(Severity.normal, 'user with ci: $ci deleted');
