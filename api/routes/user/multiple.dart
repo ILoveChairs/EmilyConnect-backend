@@ -1,4 +1,5 @@
 import 'package:dart_firebase_admin/auth.dart';
+import 'package:dart_firebase_admin/firestore.dart';
 import 'package:dart_frog/dart_frog.dart';
 
 import '../../utils/ci.dart';
@@ -25,7 +26,7 @@ Future<Response> onRequest(RequestContext context) async {
    *    }
    *  ]
    * }
-   * ON SUCCESS: 201
+   * ON SUCCESS: 201 => {'results': {...<ci>: <string>}}
    * ON ERROR: 400 => {'error': <string>}
    * 
    * => DELETE
@@ -35,18 +36,29 @@ Future<Response> onRequest(RequestContext context) async {
    *    ci: <string>
    *  ]
    * }
-   * ON SUCCESS: 204
+   * ON SUCCESS: 204 => {'results': {...<ci>: <string>}}
    * ON ERROR: 400 => {'error': <string>}
    * 
    * Handles creation and deletion of multiple users.
    * However, if there is an error with any Firebase operation
-   * it will be ignored. In the future a list of results will be passed.
+   * it will be ignored. However it will be stored in a results
+   * map that is passed as a response.
+   * 
+   * CI is checked to be a valid uruguayan document. Will probably be changed
+   * in the future to not be checked.
+   * 
+   * If the user is created it will appear like this:
+   * {'results': {...<ci>: 'User created'}}
+   * 
+   * If the user is deleted it will appear like this:
+   * {'results': {...<ci>: 'User deleted'}}
    */
 
   // Rename
   final request = context.request;
 
-  // Method check moved to be first, checks if post or delete !=(405)
+  // Method check moved to be first.
+  // Checks if post or delete !=(405)
   if (!(
     request.method == HttpMethod.post ||
     request.method == HttpMethod.delete
@@ -54,7 +66,7 @@ Future<Response> onRequest(RequestContext context) async {
     return methodNotAllowed();
   }
 
-  // Check that body is json with header !=(406)
+  // Check that header says body is json !=(406)
   if (request.headers['Content-Type'] != 'application/json') {
     return notAcceptable();
   }
@@ -71,7 +83,7 @@ Future<Response> onRequest(RequestContext context) async {
     return badRequest();
   }
 
-  // Check that method is POST
+  // Redirect to function depending on method
   if (request.method == HttpMethod.post) {
     return postRequest(request, json);
   } else if (request.method == HttpMethod.delete) {
@@ -79,7 +91,7 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   // Should not reach here
-  return Response(statusCode: 500);
+  return internalServerError(msg: 'End of method search');
 }
 
 
@@ -88,27 +100,7 @@ Future<Response> postRequest(
   Map<String, dynamic> json,
 ) async {
   /**
-   * => POST
-   * EXPECTED POST BODY: {
-   *  users: [
-   *    ...
-   *    {
-   *      ci: <string>,
-   *      first_name: <string>,
-   *      last_name: <string>,
-   *      role: <string> (optional)
-   *    }
-   *  ]
-   * }
-   * ON SUCCESS: 201
-   * ON ERROR: 400 => {'error': <string>}
-   * 
-   * Tries to create all the users passed in the array.
-   * However, if there is an error with any Firebase operation
-   * it will be ignored. In the future a list of results will be passed.
-   * 
-   * CI is checked to be a valid uruguayan document. Will probably be changed
-   * in the future to not be checked.
+   * POST
    */
 
   // Validate fields !=(400)
@@ -158,11 +150,14 @@ Future<Response> postRequest(
     );
   }
 
+  // Creates list to store results of user creations
+  final results = <String, String>{};
+
   // Calls Firebase Auth to create user !=(503)
   for (var i = 0; i < checkedUserList.length; i++) {
+    final user = checkedUserList[i];
     try {
       await auth.createUser(userRequestList[i]);
-      final user = checkedUserList[i];
       await firestore.collection('User').doc(user['ci']).set(
         user['role'] == null ? {
           'first_name': user['firstName'],
@@ -173,14 +168,31 @@ Future<Response> postRequest(
           'role': user['role'],
         },
       );
+      results[user['ci']!] = 'User created';
     } catch (err) {
-      // Do nothing
-      // TODO(ILoveChairs): List of errors
+      // Errors will be added to results
+      if (err is FirebaseAuthAdminException) {
+        results[user['ci']!] = err.message;
+      } else if (err is FirebaseFirestoreAdminException) {
+        // It will try to delete the auth user when firestore save fails
+        try {
+          await auth.deleteUser(user['ci']!);
+        } catch (nerr) {
+          // Do nothing
+        }
+        results[user['ci']!] = err.message;
+      } else {
+        results[user['ci']!] = 'Unexpected error';
+      }
     }
   }
 
   // Returns appropiate response
-  return Response(statusCode: 201);
+  return Response.json(
+    statusCode: 201,
+    headers: {'Content-Type': 'application/json'},
+    body: {'results': results},
+  );
 }
 
 
@@ -189,19 +201,7 @@ Future<Response> deleteRequest(
   Map<String, dynamic> json,
 ) async {
   /**
-   * => DELETE
-   * EXPECTED DELETE BODY: {
-   *  users: [
-   *    ...
-   *    ci: <string>
-   *  ]
-   * }
-   * ON SUCCESS: 204
-   * ON ERROR: 400 => {'error': <string>}
-   * 
-   * Tries to delete all users passed in the array.
-   * However, if there is an error with any Firebase operation
-   * it will be ignored. In the future a list of results will be passed.
+   * DELETE
    */
 
   // Validate fields !=(400)

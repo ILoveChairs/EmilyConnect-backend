@@ -9,7 +9,9 @@ environment:
 dependencies:
   dart_firebase_admin: ^0.3.1
   dart_frog: ^1.1.0
+  dart_frog_request_logger: ^0.0.2
   meta: ^1.16.0
+  shelf_cors_headers: ^0.1.5
 
 dev_dependencies:
   mocktail: ^1.0.3
