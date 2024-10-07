@@ -1,6 +1,7 @@
 import 'package:dart_firebase_admin/auth.dart';
 import 'package:dart_firebase_admin/firestore.dart';
 import 'package:dart_frog/dart_frog.dart';
+import 'package:dart_frog_request_logger/dart_frog_request_logger.dart';
 
 import '../../utils/ci.dart';
 import '../../utils/firebase.dart';
@@ -8,51 +9,55 @@ import '../../utils/responses.dart';
 import '../../utils/roles.dart';
 
 Future<Response> onRequest(RequestContext context) async {
-  /**
-   * PATH: /user/multiple
-   * ALLOWED METHODS: [POST, DELETE]
-   * REQUIRED HEADERS: {'Content-Type': 'application/json'}
-   * NON-SPECIFIC ERRORS: 405, 406, 401, 403, 400 => {'error': <string>}
-   * 
-   * => POST
-   * EXPECTED POST BODY: {
-   *  users: [
-   *    ...
-   *    {
-   *      ci: <string>,
-   *      first_name: <string>,
-   *      last_name: <string>,
-   *      role: <string> (optional)
-   *    }
-   *  ]
-   * }
-   * ON SUCCESS: 201 => {'results': {...<ci>: <string>}}
-   * ON ERROR: 400 => {'error': <string>}
-   * 
-   * => DELETE
-   * EXPECTED DELETE BODY: {
-   *  users: [
-   *    ...
-   *    ci: <string>
-   *  ]
-   * }
-   * ON SUCCESS: 204 => {'results': {...<ci>: <string>}}
-   * ON ERROR: 400 => {'error': <string>}
-   * 
-   * Handles creation and deletion of multiple users.
-   * However, if there is an error with any Firebase operation
-   * it will be ignored. However it will be stored in a results
-   * map that is passed as a response.
-   * 
-   * CI is checked to be a valid uruguayan document. Will probably be changed
-   * in the future to not be checked.
-   * 
-   * If the user is created it will appear like this:
-   * {'results': {...<ci>: 'User created'}}
-   * 
-   * If the user is deleted it will appear like this:
-   * {'results': {...<ci>: 'User deleted'}}
-   */
+  /// PATH: /user/multiple
+  /// ALLOWED METHODS: [POST, DELETE]
+  /// REQUIRED HEADERS: {'Content-Type': 'application/json'}
+  /// NON-SPECIFIC ERRORS: 405, 406, 415, 401, 403, 400 => {
+  ///  'error': <string>,
+  ///  'msg': <string>
+  /// }
+  /// 
+  /// => POST
+  /// EXPECTED POST BODY: {
+  ///  users: [
+  ///    ...
+  ///    {
+  ///      ci: <string>,
+  ///      first_name: <string>,
+  ///      last_name: <string>,
+  ///      role: <string> (optional)
+  ///    }
+  ///  ]
+  /// }
+  /// ON SUCCESS: 200 => {'results': {...<ci>: <string>}}
+  /// ON ERROR: 400 => {'error': <string>, 'msg': <string>}
+  /// 
+  /// => DELETE
+  /// EXPECTED DELETE BODY: {
+  ///  users: [
+  ///    ...
+  ///    ci: <string>
+  ///  ]
+  /// }
+  /// ON SUCCESS: 200 => {'results': {...<ci>: <string>}}
+  /// ON ERROR: 400 => {'error': <string>, 'msg': <string>}
+  /// 
+  /// Handles creation and deletion of multiple users.
+  /// However, if there is an error with any Firebase operation
+  /// it will be ignored. However it will be stored in a results
+  /// map that is passed as a response.
+  /// 
+  /// CI is checked to be a valid uruguayan document. Will probably be changed
+  /// in the future to not be checked.
+  /// 
+  /// If the user is created it will appear like this:
+  /// {'results': {...<ci>: 'User created'}}
+  /// 
+  /// If the user is deleted it will appear like this:
+  /// {'results': {...<ci>: 'User deleted'}}
+
+  // Init logger
+  final logger = context.read<RequestLogger>();
 
   // Rename
   final request = context.request;
@@ -66,9 +71,19 @@ Future<Response> onRequest(RequestContext context) async {
     return methodNotAllowed();
   }
 
-  // Check that header says body is json !=(406)
-  if (request.headers['Content-Type'] != 'application/json') {
+  // Check that accept has json !=(406)
+  final accept = request.headers['Accept'];
+  if (accept != null && !(
+     accept.contains('application/json') ||
+     accept.contains('application/*') ||
+     accept.contains('*/*')
+  )) {
     return notAcceptable();
+  }
+
+  // Check that content is json via header !=(415)
+  if (request.headers['Content-Type'] != 'application/json') {
+    return unsopportedMediaType();
   }
 
   // TODO(ILoveChairs): Authentication check !=(401)
@@ -80,28 +95,28 @@ Future<Response> onRequest(RequestContext context) async {
   try {
     json = await request.json() as Map<String, dynamic>;
   } catch (err) {
-    return badRequest();
+    return badRequest(msg: 'Json is invalid.');
   }
 
   // Redirect to function depending on method
   if (request.method == HttpMethod.post) {
-    return postRequest(request, json);
+    return postRequest(request, json, logger);
   } else if (request.method == HttpMethod.delete) {
-    return deleteRequest(request, json);
+    return deleteRequest(request, json, logger);
   }
 
-  // Should not reach here
-  return internalServerError(msg: 'End of method search');
+  // Should not reach here !=(500)
+  logger.error('End of script error');
+  return internalServerError(msg: 'Unexpected end of script.');
 }
 
 
 Future<Response> postRequest(
   Request request,
   Map<String, dynamic> json,
+  RequestLogger logger,
 ) async {
-  /**
-   * POST
-   */
+  /// POST
 
   // Validate fields !=(400)
   final userList = json['users'];
@@ -182,14 +197,15 @@ Future<Response> postRequest(
         }
         results[user['ci']!] = err.message;
       } else {
+        logger.error(err.toString());
         results[user['ci']!] = 'Unexpected error';
       }
     }
   }
 
   // Returns appropiate response
+  logger.normal('list of users created: $results');
   return Response.json(
-    statusCode: 201,
     headers: {'Content-Type': 'application/json'},
     body: {'results': results},
   );
@@ -199,10 +215,9 @@ Future<Response> postRequest(
 Future<Response> deleteRequest(
   Request request,
   Map<String, dynamic> json,
+  RequestLogger logger,
 ) async {
-  /**
-   * DELETE
-   */
+  /// DELETE
 
   // Validate fields !=(400)
   final userList = json['users'];
@@ -222,17 +237,21 @@ Future<Response> deleteRequest(
     }
   }
 
+  // Creates list to store results of user creations
+  final results = <String>[];
 
-  // Calls Firebase Auth to create user !=(503)
-  for (var i = 0; i < userList.length; i++) {
-    try {
-      await auth.deleteUsers(userList as List<String>);
-    } catch (err) {
-      // Do nothing
-      // TODO(ILoveChairs): List of errors
-    }
+  // Calls Firebase Auth to delete users (does not produce errors)
+  final deletion = await auth.deleteUsers(userList as List<String>);
+  for (final err in deletion.errors) {
+    results[err.index] = err.error.message;
   }
 
+  // TODO(ILoveChairs): Implement user Seek And Destroy
+
   // Returns appropiate response
-  return Response(statusCode: 204);
+  logger.normal('number of users deleted: ${deletion.successCount}/${deletion.failureCount}');
+  return Response.json(
+    headers: {'Content-Type': 'application/json'},
+    body: {'results': results},
+  );
 }

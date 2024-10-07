@@ -10,37 +10,35 @@ import '../../utils/responses.dart';
 import '../../utils/roles.dart';
 
 Future<Response> onRequest(RequestContext context) async {
-  /**
-   * PATH: /user
-   * ALLOWED METHODS: [OPTIONS, POST, DELETE]
-   * REQUIRED HEADERS: {'Content-Type': 'application/json'}
-   * NON-SPECIFIC ERRORS: 405, 406, 401, 403, 400 => {
-   *  'error': <string>,
-   *  'msg': <string>
-   * }
-   * 
-   * => POST
-   * EXPECTED POST BODY: {
-   *  ci: <string>,
-   *  first_name: <string>,
-   *  last_name: <string>,
-   *  role: <string> (optional)
-   * }
-   * ON SUCCESS: 201
-   * ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
-   * 
-   * => DELETE
-   * EXPECTED DELETE BODY: {
-   *  ci: <string>
-   * }
-   * ON SUCCESS: 204
-   * ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
-   * 
-   * Handles creation and deletion of singular users.
-   * Updates are not implemented yet.
-   * Reads will probably not be implemented as it can be
-   * directly done through Firestore.
-   */
+  /// PATH: /user
+  /// ALLOWED METHODS: [OPTIONS, POST, DELETE]
+  /// REQUIRED HEADERS: {'Content-Type': 'application/json'}
+  /// NON-SPECIFIC ERRORS: 405, 406, 415, 401, 403, 400 => {
+  ///  'error': <string>,
+  ///  'msg': <string>
+  /// }
+  /// 
+  /// => POST
+  /// EXPECTED POST BODY: {
+  ///  ci: <string>,
+  ///  first_name: <string>,
+  ///  last_name: <string>,
+  ///  role: <string> (optional)
+  /// }
+  /// ON SUCCESS: 201
+  /// ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
+  /// 
+  /// => DELETE
+  /// EXPECTED DELETE BODY: {
+  ///  ci: <string>
+  /// }
+  /// ON SUCCESS: 204
+  /// ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
+  /// 
+  /// Handles creation and deletion of singular users.
+  /// Updates are not implemented yet.
+  /// Reads will probably not be implemented as it can be
+  /// directly done through Firestore.
 
   // Init logger
   final logger = context.read<RequestLogger>();
@@ -48,12 +46,12 @@ Future<Response> onRequest(RequestContext context) async {
   // Rename
   final request = context.request;
 
-  //Check that methods are correct
+  // Check that methods are correct !=(405)
   if (!(
     request.method == HttpMethod.post ||
     request.method == HttpMethod.delete
   )) {
-    return methodNotAllowed(msg: 'Only POST and DELETE is allowed.');
+    return methodNotAllowed();
   }
 
   // Check that accept has json !=(406)
@@ -63,11 +61,12 @@ Future<Response> onRequest(RequestContext context) async {
      accept.contains('application/*') ||
      accept.contains('*/*')
   )) {
-    return notAcceptable(msg: 'Application only produces json.');
+    return notAcceptable();
   }
 
+  // Check that content is json via header !=(415)
   if (request.headers['Content-Type'] != 'application/json') {
-    return badRequest(msg: 'Application only accepts json.');
+    return unsopportedMediaType();
   }
 
   // TODO(ILoveChairs): Authentication check !=(401)
@@ -89,8 +88,8 @@ Future<Response> onRequest(RequestContext context) async {
     return deleteRequest(request, json, logger);
   }
 
-  // Should not reach here
-  logger.log(Severity.error, 'End of script error');
+  // Should not reach here !=(500)
+  logger.error('End of script error');
   return internalServerError(msg: 'Unexpected end of script.');
 }
 
@@ -100,9 +99,7 @@ Future<Response> postRequest(
   Map<String, dynamic> json,
   RequestLogger logger,
 ) async {
-  /**
-   * POST
-   */
+  /// POST
 
   // Validate fields !=(400)
   final ci = json['ci'];
@@ -118,14 +115,14 @@ Future<Response> postRequest(
     lastName is! String ||
     !ciValidate(ci)
   ) {
-    return badRequest(msg: 'Fields are invalid.');
+    return badRequest();
   }
   if (role != null && role is! String) {
-    return badRequest(msg: 'Fields are invalid.');
+    return badRequest();
   }
   // I do not trust the &&
   if (role != null && !isRole(role as String)) {
-    return badRequest(msg: 'Fields are invalid.');
+    return badRequest();
   }
 
   // Creates request to create user
@@ -164,13 +161,13 @@ Future<Response> postRequest(
       }
       return serviceUnavailable(msg: err.message);
     } else {
-      logger.log(Severity.error, err.toString());
+      logger.error(err.toString());
       return serviceUnavailable(msg: 'Unexpected error.');
     }
   }
 
   // Returns appropiate response
-  logger.log(Severity.normal, 'user with ci: $ci created');
+  logger.normal('user with ci: $ci created');
   return Response(statusCode: 201);
 }
 
@@ -180,9 +177,7 @@ Future<Response> deleteRequest(
   Map<String, dynamic> json,
   RequestLogger logger,
 ) async {
-  /**
-   * DELETE
-   */
+  /// DELETE
 
   // Validate fields !=(400)
   final ci = json['ci'];
@@ -190,7 +185,7 @@ Future<Response> deleteRequest(
     ci == null ||
     ci is! String
   ) {
-    return badRequest(msg: 'Fields are invalid.');
+    return badRequest();
   }
 
   // Calls Firebase Auth to delete user !=(503)
@@ -200,7 +195,7 @@ Future<Response> deleteRequest(
   } catch (err) {
     if (err is FirebaseAuthAdminException) {
       if (err.errorCode == AuthClientErrorCode.userNotFound) {
-        return notFound(msg: 'User not found.');
+        return notFound();
       }
       return serviceUnavailable(msg: err.message);
     } else {
@@ -209,7 +204,7 @@ Future<Response> deleteRequest(
     }
   }
 
-  // TODO(ILoveChairs): Create user Search and Destroy
+  // TODO(ILoveChairs): Implement user Search and Destroy
 
   // Returns appropiate response
   logger.log(Severity.normal, 'user with ci: $ci deleted');

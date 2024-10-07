@@ -11,126 +11,141 @@ const allows = 'OPTIONS, POST, DELETE';
 
 
 // 405
-Response methodNotAllowed({String? err, String? allowed, String? msg}) {
+Response methodNotAllowed({
+  String msg = 'Only [$allows] methods are allowed.',
+}) {
   return Response.json(
     statusCode: 405,
     headers: {
       'Content-Type': 'application/json',
-      'Allow': allowed ?? allows,
+      'Allow': allows,
     },
-    body: msg == null ? 
-    {'error': err ?? 'Method Not Allowed'} :
-    {'error': err ?? 'Method Not Allowed', 'msg': msg},
+    body: {'error': 'Method Not Allowed', 'msg': msg},
   );
 }
 
 
 // 406
-Response notAcceptable({String? err, String? msg}) {
+Response notAcceptable({
+  String msg = 'Response can only be application/json.',
+}) {
   return Response.json(
     statusCode: 406,
     headers: {
       'Content-Type': 'application/json',
       'Allow': 'application/json',
     },
-    body: msg == null ? 
-    {'error': err ?? 'Not Acceptable'} :
-    {'error': err ?? 'Not Acceptable', 'msg': msg},
+    body: {'error': 'Not Acceptable', 'msg': msg},
+  );
+}
+
+
+// 415
+Response unsopportedMediaType({
+  String msg = 'Request must be application/json.',
+}) {
+  return Response.json(
+    statusCode: 415,
+    headers: {
+      'Content-Type': 'application/json',
+      'Allow': 'application/json',
+    },
+    body: {'error': 'Unsupported Media Type', 'msg': msg},
   );
 }
 
 
 // 400
-Response badRequest({String? err, String? msg}) {
+Response badRequest({
+  String msg = 'Fields are invalid.',
+}) {
   return Response.json( 
     statusCode: 400,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: msg == null ? 
-    {'error': err ?? 'Bad Request'} :
-    {'error': err ?? 'Bad Request', 'msg': msg},
+    body: {'error': 'Bad Request', 'msg': msg},
   );
 }
 
 
 // 401
-Response unauthorized({String? err, String? msg}) {
+Response unauthorized({
+  String msg = 'Must provide bearer credentials.',
+}) {
   return Response.json(
     statusCode: 401,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: msg == null ? 
-    {'error': err ?? 'Unauthorized'} :
-    {'error': err ?? 'Unauthorized', 'msg': msg},
+    body: {'error': 'Unauthorized', 'msg': msg},
   );
 }
 
 
 // 403
-Response forbidden({String? err, String? msg}) {
+Response forbidden({
+  String msg = 'Insufficent piviledges.',
+}) {
   return Response.json(
     statusCode: 403,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: msg == null ? 
-    {'error': err ?? 'Forbidden'} :
-    {'error': err ?? 'Forbidden', 'msg': msg},
+    body: {'error': 'Forbidden', 'msg': msg},
   );
 }
 
 
 // 404
-Response notFound({String? err, String? msg}) {
+Response notFound({
+  String msg = 'User not found.',
+}) {
   return Response.json(
     statusCode: 404,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: msg == null ? 
-    {'error': err ?? 'Not Found'} :
-    {'error': err ?? 'Not Found', 'msg': msg},
+    body: {'error': 'Not Found', 'msg': msg},
   );
 }
 
 
 // 409
-Response conflict({String? err, String? msg}) {
+Response conflict({
+  String msg = 'User conflict.',
+}) {
   return Response.json(
     statusCode: 409,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: msg == null ? 
-    {'error': err ?? 'Conflict'} :
-    {'error': err ?? 'Conflict', 'msg': msg},
+    body: {'error': 'Conflict', 'msg': msg},
   );
 }
 
 
 // 500
-Response internalServerError({String? err, String? msg}) {
+Response internalServerError({
+  String msg = 'Unknown',
+}) {
   return Response.json(
     statusCode: 500,
     headers: {
       'Content-Type': 'application/json',
     },
-    body: msg == null ? 
-    {'error': err ?? 'Internal Server Error'} :
-    {'error': err ?? 'Internal Server Error', 'msg': msg},
+    body: {'error': 'Internal Server Error', 'msg': msg},
   );
 }
 
 
 // 503
-Response serviceUnavailable({String? err, String? msg}) {
+Response serviceUnavailable({
+  String msg = 'Database connection might be disabled.',
+}) {
   return Response.json(
     statusCode: 503,
     headers: {'Content-Type': 'application/json'},
-    body: msg == null ? 
-    {'error': err ?? 'Service Unavailable'} :
-    {'error': err ?? 'Service Unavailable', 'msg': msg},
+    body: {'error': 'Service Unavailable', 'msg': msg},
   );
 }

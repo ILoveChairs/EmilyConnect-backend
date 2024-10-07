@@ -14,10 +14,13 @@ Updates may be added in the future.
 
 Endpoints will also be passed to a yaml probably.
 
-## ENDPOINTS:
+## Endpoints:
 
 For all endpoints the following is required:
 - Headers: {"Content-Type": "application/json"}
+
+Generic errors:
+- 405, 406, 415, 401, 403, 400 => {"error": (string), "msg": (string)}
 
 &emsp;
 
@@ -37,13 +40,13 @@ For all endpoints the following is required:
 
 -> DELETE
 
-EXPECTED DELETE BODY: {
+- EXPECTED DELETE BODY: {
  "ci": (string)
 }
 
-ON SUCCESS: 204
+- ON SUCCESS: 204
 
-ON ERROR: 400, 404, 503 => {"error": (string), "msg": (string)}
+- ON ERROR: 400, 404, 503 => {"error": (string), "msg": (string)}
 
 &ensp;
 
@@ -51,7 +54,7 @@ ON ERROR: 400, 404, 503 => {"error": (string), "msg": (string)}
 
 -> POST
 
-EXPECTED POST BODY: {
+- EXPECTED POST BODY: {
  users: [
    ...
    {
@@ -63,21 +66,25 @@ EXPECTED POST BODY: {
  ]
 }
 
-ON SUCCESS: 201
+- ON SUCCESS: 200 => {"results": {...(ci): (string)}}
 
-ON ERROR: 400 => {"error": (string), "msg": (string)}
+- ON ERROR: 400 => {"error": (string), "msg": (string)}
 
 &emsp;
 
 -> DELETE
 
-EXPECTED DELETE BODY: {
+- EXPECTED DELETE BODY: {
  users: [
    ...
    "ci": (string)
  ]
 }
 
-ON SUCCESS: 204 => {"results": {...<ci>: (string)}}
+- ON SUCCESS: 200 => {"results": [...(string)]}
 
-ON ERROR: 400 => {"error": (string), "msg": (string)}
+- ON ERROR: 400 => {"error": (string), "msg": (string)}
+
+## Licence
+
+No.
