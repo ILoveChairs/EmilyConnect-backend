@@ -7,7 +7,7 @@ import 'package:dart_frog/dart_frog.dart';
 
 
 // Allow string used for 'Allow' headers
-const allows = 'OPTIONS, POST, DELETE';
+const allows = 'OPTIONS, POST, DELETE, PATCH';
 
 
 // 405

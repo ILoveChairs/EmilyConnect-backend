@@ -1,13 +1,16 @@
 
+// TODO(ILoveChairs): Change filename to field validations
+// TODO(ILoveChairs): Implement isStingValid
+// TODO(ILoveChairs): Implement isRoleValid
+
+
 bool ciValidate(String ci) {
-  /**
-   * Validates that a uruguayan CI document is valid.
-   * 
-   * For more information about the validation check:
-   * https://forum.openoffice.org/es/forum/viewtopic.php?t=7649
-   * 
-   * Might be deleted in the future.
-   */
+  /// Validates that a uruguayan CI document is valid.
+  /// 
+  /// For more information about the validation check:
+  /// https://forum.openoffice.org/es/forum/viewtopic.php?t=7649
+  /// 
+  /// Might be deleted in the future.
 
   // Check length
   if (ci.length != 8) {
