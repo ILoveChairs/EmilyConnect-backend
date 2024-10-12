@@ -10,51 +10,6 @@ import 'package:dart_frog/dart_frog.dart';
 const allows = 'OPTIONS, POST, DELETE, PATCH';
 
 
-// 405
-Response methodNotAllowed({
-  String msg = 'Only [$allows] methods are allowed.',
-}) {
-  return Response.json(
-    statusCode: 405,
-    headers: {
-      'Content-Type': 'application/json',
-      'Allow': allows,
-    },
-    body: {'error': 'Method Not Allowed', 'msg': msg},
-  );
-}
-
-
-// 406
-Response notAcceptable({
-  String msg = 'Response can only be application/json.',
-}) {
-  return Response.json(
-    statusCode: 406,
-    headers: {
-      'Content-Type': 'application/json',
-      'Allow': 'application/json',
-    },
-    body: {'error': 'Not Acceptable', 'msg': msg},
-  );
-}
-
-
-// 415
-Response unsopportedMediaType({
-  String msg = 'Request must be application/json.',
-}) {
-  return Response.json(
-    statusCode: 415,
-    headers: {
-      'Content-Type': 'application/json',
-      'Allow': 'application/json',
-    },
-    body: {'error': 'Unsupported Media Type', 'msg': msg},
-  );
-}
-
-
 // 400
 Response badRequest({
   String msg = 'Fields are invalid.',
@@ -111,6 +66,36 @@ Response notFound({
 }
 
 
+// 405
+Response methodNotAllowed({
+  String msg = 'Only [$allows] methods are allowed.',
+}) {
+  return Response.json(
+    statusCode: 405,
+    headers: {
+      'Content-Type': 'application/json',
+      'Allow': allows,
+    },
+    body: {'error': 'Method Not Allowed', 'msg': msg},
+  );
+}
+
+
+// 406
+Response notAcceptable({
+  String msg = 'Response can only be application/json.',
+}) {
+  return Response.json(
+    statusCode: 406,
+    headers: {
+      'Content-Type': 'application/json',
+      'Allow': 'application/json',
+    },
+    body: {'error': 'Not Acceptable', 'msg': msg},
+  );
+}
+
+
 // 409
 Response conflict({
   String msg = 'User conflict.',
@@ -121,6 +106,77 @@ Response conflict({
       'Content-Type': 'application/json',
     },
     body: {'error': 'Conflict', 'msg': msg},
+  );
+}
+
+
+// 411
+Response lengthRequired({
+  String msg = 'Request length header is required.',
+}) {
+  return Response.json(
+    statusCode: 411,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: {'error': 'Length Required', 'msg': msg},
+  );
+}
+
+
+// 413
+Response contentTooLarge({
+  String msg = 'Request exceeded allowed range.',
+}) {
+  return Response.json(
+    statusCode: 413,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: {'error': 'Content Too Large', 'msg': msg},
+  );
+}
+
+
+// 414
+Response uriTooLong({
+  String msg = 'URI exceeded limit of characters.',
+}) {
+  return Response.json(
+    statusCode: 414,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: {'error': 'URI Too Long', 'msg': msg},
+  );
+}
+
+
+// 415
+Response unsopportedMediaType({
+  String msg = 'Request must be application/json.',
+}) {
+  return Response.json(
+    statusCode: 415,
+    headers: {
+      'Content-Type': 'application/json',
+      'Allow': 'application/json',
+    },
+    body: {'error': 'Unsupported Media Type', 'msg': msg},
+  );
+}
+
+
+// 431
+Response requestHeaderFieldsTooLarge({
+  String msg = 'Request must be application/json.',
+}) {
+  return Response.json(
+    statusCode: 431,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: {'error': 'Request Header Fields Too Large', 'msg': msg},
   );
 }
 

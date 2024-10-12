@@ -1,10 +1,19 @@
 
-// TODO(ILoveChairs): Change filename to field validations
-// TODO(ILoveChairs): Implement isStingValid
-// TODO(ILoveChairs): Implement isRoleValid
+
+const maxIndexContentSize = 256;
+const maxMultipleContentSize = 1024;
 
 
-bool ciValidate(String ci) {
+bool isStringFieldValid(String str) {
+  if (str.length > 64) {
+    return false;
+  }
+
+  return true;
+}
+
+
+bool isCiValid(String ci) {
   /// Validates that a uruguayan CI document is valid.
   /// 
   /// For more information about the validation check:
@@ -13,9 +22,12 @@ bool ciValidate(String ci) {
   /// Might be deleted in the future.
 
   // Check length
+  // ! DISABLED
+  /*
   if (ci.length != 8) {
     return false;
   }
+  */
 
   // Check if all characters are numbers and if last digit is correct
   // ! DISABLED
@@ -45,6 +57,7 @@ bool ciValidate(String ci) {
 
   return true;
 }
+
 
 /*
 void main() {

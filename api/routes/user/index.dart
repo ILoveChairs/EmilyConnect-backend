@@ -3,7 +3,7 @@ import 'package:dart_firebase_admin/firestore.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_request_logger/dart_frog_request_logger.dart';
 
-import '../../utils/ci.dart';
+import '../../utils/field_validations.dart';
 import '../../utils/firebase.dart';
 import '../../utils/firestore_names.dart';
 import '../../utils/responses.dart';
@@ -56,6 +56,19 @@ Future<Response> onRequest(RequestContext context) async {
   // Rename
   final request = context.request;
 
+  // Check that uri is not too long !=(414)
+  if (request.uri.toString().length > 256) {
+    return uriTooLong();
+  }
+
+  // Check that headers are not too long !=(431)
+  if (
+    request.headers.length > 12 ||
+    (request.headers.values.any((header) => header.length > 128))
+  ) {
+    return requestHeaderFieldsTooLarge();
+  }
+
   // Check that methods are correct !=(405)
   if (!(
     request.method == HttpMethod.post ||
@@ -65,9 +78,29 @@ Future<Response> onRequest(RequestContext context) async {
     return methodNotAllowed();
   }
 
-  // Check that accept has json !=(406)
+  // Check that required headers exist !=(400)
   final accept = request.headers['Accept'];
-  if (accept != null && !(
+  final contentType = request.headers['Content-Type'];
+  final contentSize = request.headers['Content-Length'];
+  if (
+    accept == null ||
+    contentType == null
+  ) {
+    return badRequest(msg: 'Headers are missing.');
+  }
+  // Special: content length does not exist !=(411)
+  if (contentSize == null) {
+    return lengthRequired();
+  }
+  if (
+    int.tryParse(contentSize) == null ||
+    int.parse(contentSize) == 0
+  ) {
+    return badRequest(msg: 'No content sent.');
+  }
+
+  // Check that accept has json !=(406)
+  if (!(
      accept.contains('application/json') ||
      accept.contains('application/*') ||
      accept.contains('*/*')
@@ -76,8 +109,16 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   // Check that content is json via header !=(415)
-  if (request.headers['Content-Type'] != 'application/json') {
+  if (contentType != 'application/json') {
     return unsopportedMediaType();
+  }
+
+  // Check that content size is below limit !=(413)
+  if (
+    int.tryParse(contentSize) == null ||
+    int.parse(contentSize) > maxIndexContentSize
+  ) {
+    return contentTooLarge();
   }
 
   // TODO(ILoveChairs): Authentication check !=(401)
@@ -114,31 +155,30 @@ Future<Response> postRequest(
 ) async {
   /// POST
 
+  logger.info('post');
   // Validate fields !=(400)
   final ci = json['ci'];
   final firstName = json['first_name'];
   final lastName = json['last_name'];
   final role = json['role'];
   if (
-    ci == null ||
-    ci is! String ||
-    firstName == null ||
-    firstName is! String ||
-    lastName == null ||
-    lastName is! String ||
-    !ciValidate(ci)
+    ci == null || ci is! String ||
+    !isStringFieldValid(ci) ||
+    firstName == null ||firstName is! String ||
+    !isStringFieldValid(firstName) ||
+    lastName == null || lastName is! String ||
+    !isStringFieldValid(lastName)
   ) {
     return badRequest();
   }
-  if (role != null && role is! String) {
+  if (!isCiValid(ci)) {
     return badRequest();
   }
-  // I do not trust the &&
-  if (role != null && !isRole(role as String)) {
+  if (role != null && !(role is String && !isRole(role))) {
     return badRequest();
   }
 
-  // Creates request to create user
+  // Defines request to create user in Firebase Authentication
   final createUserRequest = CreateRequest(
     uid: ci,
     email: '$ci@emilydickenson.com',
@@ -146,19 +186,19 @@ Future<Response> postRequest(
     displayName: ci,
   );
 
+  // Defines document data to create user in Firestore
+  final userDoc = {
+      'first_name': firstName,
+      'last_name': lastName,
+  };
+  if (role != null) {
+    userDoc['role'] = role as String;
+  }
+
   // Calls Firebase Auth and Firestore to create user !=(503)
   try {
     await auth.createUser(createUserRequest);
-    await firestore.collection(usersCollection).doc(ci).set(
-      role == null ? {
-        'first_name': firstName,
-        'last_name': lastName,
-      } : {
-        'first_name': firstName,
-        'last_name': lastName,
-        'role': role,
-      },
-    );
+    await firestore.collection(usersCollection).doc(ci).set(userDoc);
   } catch (err) {
     if (err is FirebaseAuthAdminException) {
       if (err.errorCode == AuthClientErrorCode.uidAlreadyExists) {
@@ -169,7 +209,7 @@ Future<Response> postRequest(
       // It will try to delete the auth user when firestore save fails
       try {
         await auth.deleteUser(ci);
-      } catch (nerr) {
+      } catch (err2) {
         // Do nothing
       }
       return serviceUnavailable(msg: err.message);
@@ -195,8 +235,8 @@ Future<Response> deleteRequest(
   // Validate fields !=(400)
   final ci = json['ci'];
   if (
-    ci == null ||
-    ci is! String
+    ci == null || ci is! String ||
+    !isStringFieldValid(ci)
   ) {
     return badRequest();
   }
@@ -239,16 +279,21 @@ Future<Response> patchRequest(
   final firstName = json['first_name'];
   final lastName = json['last_name'];
   if (
-    ci == null ||
-    ci is! String ||
-    !ciValidate(ci)
+    ci == null || ci is! String || !isCiValid(ci) ||
+    !isStringFieldValid(ci)
   ) {
     return badRequest();
   }
-  if (firstName != null && firstName is! String) {
+  if (
+    firstName != null &&
+    !(firstName is String && isStringFieldValid(firstName))
+  ) {
     return badRequest();
   }
-  if (lastName != null && lastName is! String) {
+  if (
+    lastName != null &&
+    !(lastName is String && isStringFieldValid(lastName))
+  ) {
     return badRequest();
   }
 
@@ -264,6 +309,7 @@ Future<Response> patchRequest(
   // Firestore call
   try {
     await firestore.collection('users').doc(ci).update(newRequest);
+    await userSeekAndUpdate(ci, newRequest);
   } catch  (err) {
     if (err is FirebaseFirestoreAdminException) {
       // TODO(ILoveChairs): Search for document not found error code on update

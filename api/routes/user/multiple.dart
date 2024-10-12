@@ -3,7 +3,7 @@ import 'package:dart_firebase_admin/firestore.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:dart_frog_request_logger/dart_frog_request_logger.dart';
 
-import '../../utils/ci.dart';
+import '../../utils/field_validations.dart';
 import '../../utils/firebase.dart';
 import '../../utils/firestore_names.dart';
 import '../../utils/responses.dart';
@@ -57,15 +57,27 @@ Future<Response> onRequest(RequestContext context) async {
   /// 
   /// If the user is deleted it will appear like this:
   /// {'results': {...<ci>: 'User deleted'}}
-
   // Init logger
+
   final logger = context.read<RequestLogger>();
 
   // Rename
   final request = context.request;
 
-  // Method check moved to be first.
-  // Checks if post or delete !=(405)
+  // Check that uri is not too long !=(414)
+  if (request.uri.toString().length > 256) {
+    return uriTooLong();
+  }
+
+  // Check that headers are not too long !=(431)
+  if (
+    request.headers.length > 12 ||
+    (request.headers.values.any((header) => header.length > 128))
+  ) {
+    return requestHeaderFieldsTooLarge();
+  }
+
+  // Check that methods are correct !=(405)
   if (!(
     request.method == HttpMethod.post ||
     request.method == HttpMethod.delete
@@ -73,9 +85,29 @@ Future<Response> onRequest(RequestContext context) async {
     return methodNotAllowed();
   }
 
-  // Check that accept has json !=(406)
+  // Check that required headers exist !=(400)
   final accept = request.headers['Accept'];
-  if (accept != null && !(
+  final contentType = request.headers['Content-Type'];
+  final contentSize = request.headers['Content-Length'];
+  if (
+    accept == null ||
+    contentType == null
+  ) {
+    return badRequest(msg: 'Headers are missing.');
+  }
+  // Special: content length does not exist !=(411)
+  if (contentSize == null) {
+    return lengthRequired();
+  }
+  if (
+    int.tryParse(contentSize) == null ||
+    int.parse(contentSize) == 0
+  ) {
+    return badRequest(msg: 'No content sent.');
+  }
+
+  // Check that accept has json !=(406)
+  if (!(
      accept.contains('application/json') ||
      accept.contains('application/*') ||
      accept.contains('*/*')
@@ -84,8 +116,16 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   // Check that content is json via header !=(415)
-  if (request.headers['Content-Type'] != 'application/json') {
+  if (contentType != 'application/json') {
     return unsopportedMediaType();
+  }
+
+  // Check that content size is below limit !=(413)
+  if (
+    int.tryParse(contentSize) == null ||
+    int.parse(contentSize) > maxMultipleContentSize
+  ) {
+    return contentTooLarge();
   }
 
   // TODO(ILoveChairs): Authentication check !=(401)
@@ -93,9 +133,9 @@ Future<Response> onRequest(RequestContext context) async {
   // TODO(ILoveChairs): Authorization check !=(403)
 
   // Try to get json !=(400)
-  final Map<String, dynamic> json;
+  final Map<String, Object> json;
   try {
-    json = await request.json() as Map<String, dynamic>;
+    json = await request.json() as Map<String, Object>;
   } catch (err) {
     return badRequest(msg: 'Json is invalid.');
   }
@@ -115,14 +155,17 @@ Future<Response> onRequest(RequestContext context) async {
 
 Future<Response> postRequest(
   Request request,
-  Map<String, dynamic> json,
+  Map<String, Object> json,
   RequestLogger logger,
 ) async {
   /// POST
 
   // Validate fields !=(400)
   final userList = json['users'];
-  if (userList == null || userList is! List || userList.isEmpty) {
+  if (
+    userList == null || userList is! List ||
+    userList.isEmpty || userList.length > 100
+  ) {
     return badRequest();
   }
   for (final user in userList) {
@@ -134,14 +177,16 @@ Future<Response> postRequest(
     final lastName = user['last_name'];
     final role = user['role'];
     if (
-      ci == null ||
-      ci is! String ||
-      firstName == null ||
-      firstName is! String ||
-      lastName == null ||
-      lastName is! String ||
-      !ciValidate(ci)
+      ci == null || ci is! String ||
+      !isStringFieldValid(ci) ||
+      firstName == null || firstName is! String ||
+      !isStringFieldValid(firstName) ||
+      lastName == null || lastName is! String ||
+      !isStringFieldValid(lastName)
     ) {
+      return badRequest();
+    }
+    if (!isCiValid(ci)) {
       return badRequest();
     }
     if (role != null && role is! String) {
@@ -152,12 +197,12 @@ Future<Response> postRequest(
       return badRequest();
     }
   }
-  final checkedUserList = userList.cast<Map<String, dynamic>>();
+  final checkedUserList = userList.cast<Map<String, Object>>();
 
   // Creates request to create user
   final userRequestList = <CreateRequest>[];
   for (final user in checkedUserList) {
-    final ci = user['ci'] as String;
+    final ci = user['ci']! as String;
     userRequestList.add(
       CreateRequest(
         uid: ci,
@@ -174,9 +219,9 @@ Future<Response> postRequest(
   // Calls Firebase Auth to create user !=(503)
   for (var i = 0; i < checkedUserList.length; i++) {
     final user = checkedUserList[i];
-    final ci = user['ci'] as String;
-    final firstName = user['first_name'] as String;
-    final lastName = user['last_name'] as String;
+    final ci = user['ci']! as String;
+    final firstName = user['first_name']! as String;
+    final lastName = user['last_name']! as String;
     try {
       await auth.createUser(userRequestList[i]);
       await firestore.collection(usersCollection).doc(ci).set(
@@ -220,7 +265,7 @@ Future<Response> postRequest(
 
 Future<Response> deleteRequest(
   Request request,
-  Map<String, dynamic> json,
+  Map<String, Object> json,
   RequestLogger logger,
 ) async {
   /// DELETE
