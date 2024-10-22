@@ -109,8 +109,8 @@ Future<Response> onRequest(RequestContext context) async {
   }
 
   // Check that content is json via header !=(415)
-  if (contentType != 'application/json') {
-    return unsopportedMediaType();
+  if (!contentType.contains('application/json')) {
+    return unsopportedMediaType(msg: contentType);
   }
 
   // Check that content size is below limit !=(413)
@@ -174,8 +174,8 @@ Future<Response> postRequest(
   if (!isCiValid(ci)) {
     return badRequest();
   }
-  if (role != null && !(role is String && !isRole(role))) {
-    return badRequest();
+  if (role != null && !(role is String && isRole(role))) {
+    return badRequest(msg: '$role');
   }
 
   // Defines request to create user in Firebase Authentication

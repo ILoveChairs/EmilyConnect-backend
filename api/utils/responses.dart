@@ -169,7 +169,7 @@ Response unsopportedMediaType({
 
 // 431
 Response requestHeaderFieldsTooLarge({
-  String msg = 'Request must be application/json.',
+  String msg = 'Headers must not be too long.',
 }) {
   return Response.json(
     statusCode: 431,
