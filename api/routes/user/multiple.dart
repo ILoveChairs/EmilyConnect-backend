@@ -57,25 +57,12 @@ Future<Response> onRequest(RequestContext context) async {
   /// 
   /// If the user is deleted it will appear like this:
   /// {'results': {...<ci>: 'User deleted'}}
-  // Init logger
 
+  // Init logger
   final logger = context.read<RequestLogger>();
 
   // Rename
   final request = context.request;
-
-  // Check that uri is not too long !=(414)
-  if (request.uri.toString().length > 256) {
-    return uriTooLong();
-  }
-
-  // Check that headers are not too long !=(431)
-  if (
-    request.headers.length > 12 ||
-    (request.headers.values.any((header) => header.length > 128))
-  ) {
-    return requestHeaderFieldsTooLarge();
-  }
 
   // Check that methods are correct !=(405)
   if (!(
@@ -84,53 +71,6 @@ Future<Response> onRequest(RequestContext context) async {
   )) {
     return methodNotAllowed();
   }
-
-  // Check that required headers exist !=(400)
-  final accept = request.headers['Accept'];
-  final contentType = request.headers['Content-Type'];
-  final contentSize = request.headers['Content-Length'];
-  if (
-    accept == null ||
-    contentType == null
-  ) {
-    return badRequest(msg: 'Headers are missing.');
-  }
-  // Special: content length does not exist !=(411)
-  if (contentSize == null) {
-    return lengthRequired();
-  }
-  if (
-    int.tryParse(contentSize) == null ||
-    int.parse(contentSize) == 0
-  ) {
-    return badRequest(msg: 'No content sent.');
-  }
-
-  // Check that accept has json !=(406)
-  if (!(
-     accept.contains('application/json') ||
-     accept.contains('application/*') ||
-     accept.contains('*/*')
-  )) {
-    return notAcceptable();
-  }
-
-  // Check that content is json via header !=(415)
-  if (contentType != 'application/json') {
-    return unsopportedMediaType();
-  }
-
-  // Check that content size is below limit !=(413)
-  if (
-    int.tryParse(contentSize) == null ||
-    int.parse(contentSize) > maxMultipleContentSize
-  ) {
-    return contentTooLarge();
-  }
-
-  // TODO(ILoveChairs): Authentication check !=(401)
-
-  // TODO(ILoveChairs): Authorization check !=(403)
 
   // Try to get json !=(400)
   final Map<String, Object> json;
