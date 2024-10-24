@@ -13,13 +13,14 @@ import '../../utils/user_seek_and_destroy.dart';
 Future<Response> onRequest(RequestContext context) async {
   /// PATH: /user/multiple
   /// ALLOWED METHODS: [POST, DELETE]
-  /// REQUIRED HEADERS: {'Content-Type': 'application/json'}
+  /// REQUIRED ACCEPT: {'Accept': 'application/json'}
   /// NON-SPECIFIC ERRORS: 405, 406, 415, 401, 403, 400 => {
   ///  'error': <string>,
   ///  'msg': <string>
   /// }
   /// 
   /// => POST
+  /// REQUIRED HEADERS: {'Content-Type': 'application/json'}
   /// EXPECTED POST BODY: {
   ///  users: [
   ///    ...
@@ -35,6 +36,7 @@ Future<Response> onRequest(RequestContext context) async {
   /// ON ERROR: 400 => {'error': <string>, 'msg': <string>}
   /// 
   /// => DELETE
+  /// REQUIRED CONTENT-TYPE: {'Content-Type': 'application/json'}
   /// EXPECTED DELETE BODY: {
   ///  users: [
   ///    ...
@@ -46,11 +48,8 @@ Future<Response> onRequest(RequestContext context) async {
   /// 
   /// Handles creation and deletion of multiple users.
   /// However, if there is an error with any Firebase operation
-  /// it will be ignored. However it will be stored in a results
+  /// it will be ignored. It will be stored in a results
   /// map that is passed as a response.
-  /// 
-  /// CI is checked to be a valid uruguayan document. Will probably be changed
-  /// in the future to not be checked.
   /// 
   /// If the user is created it will appear like this:
   /// {'results': {...<ci>: 'User created'}}

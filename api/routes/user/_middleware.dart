@@ -55,19 +55,20 @@ Handler httpRestrictions(Handler handler) {
       request.method == HttpMethod.post ||
       request.method ==  HttpMethod.patch
     ) {
-      // Check that required headers exist !=(400)
       final contentType = request.headers['Content-Type'];
       final contentSize = request.headers['Content-Length'];
+
+      // Check that required headers exist !=(400)
       if (contentType == null) {
         return badRequest(msg: 'Headers are missing.');
       }
 
-      // Special: content length does not exist !=(411)
+      // Check that content length exist !=(411)
       if (contentSize == null) {
         return lengthRequired();
       }
 
-      // Check that content isn't valid !=(400)
+      // Check that content is valid !=(400)
       if (
         int.tryParse(contentSize) == null ||
         int.parse(contentSize) == 0
@@ -84,9 +85,7 @@ Handler httpRestrictions(Handler handler) {
       }
 
       // Check that content is json via header !=(415)
-      if (
-        !contentType.contains('application/json')
-      ) {
+      if (!contentType.contains('application/json') ) {
         return unsopportedMediaType();
       }
     }

@@ -6,20 +6,20 @@ import 'package:dart_frog_request_logger/dart_frog_request_logger.dart';
 import '../../utils/field_validations.dart';
 import '../../utils/firebase.dart';
 import '../../utils/firestore_names.dart';
+import '../../utils/header_utils.dart';
 import '../../utils/responses.dart';
 import '../../utils/roles.dart';
-import '../../utils/user_seek_and_destroy.dart';
 
 Future<Response> onRequest(RequestContext context) async {
   /// PATH: /user
-  /// ALLOWED METHODS: [OPTIONS, POST, DELETE, PATCH]
-  /// REQUIRED HEADERS: {'Content-Type': 'application/json'}
+  /// ALLOWED METHODS: [OPTIONS, POST]
   /// NON-SPECIFIC ERRORS: 405, 406, 415, 401, 403, 400 => {
   ///  'error': <string>,
   ///  'msg': <string>
   /// }
   /// 
   /// => POST
+  /// REQUIRED HEADERS: {'Content-Type': 'application/json'}
   /// EXPECTED POST BODY: {
   ///  ci: <string>,
   ///  first_name: <string>,
@@ -29,26 +29,9 @@ Future<Response> onRequest(RequestContext context) async {
   /// ON SUCCESS: 201
   /// ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
   /// 
-  /// => DELETE
-  /// EXPECTED DELETE BODY: {
-  ///  ci: <string>
-  /// }
-  /// ON SUCCESS: 204
-  /// ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
+  /// Handles creation of singular users.
+  /// Update and Delete are delegated to user/[ci]
   /// 
-  /// => PATCH
-  /// EXPECTED PATCH BODY: {
-  ///  ci: <string>,
-  ///  first_name: <string> (optional),
-  ///  last_name: <string> (optional)
-  /// }
-  /// ON SUCCESS: 200
-  /// ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
-  /// 
-  /// Handles creation and deletion of singular users.
-  /// Updates are not implemented yet.
-  /// Reads will probably not be implemented as it can be
-  /// directly done through Firestore.
 
   // Init logger
   final logger = context.read<RequestLogger>();
@@ -57,11 +40,7 @@ Future<Response> onRequest(RequestContext context) async {
   final request = context.request;
 
   // Check that methods are correct !=(405)
-  if (!(
-    request.method == HttpMethod.post ||
-    request.method == HttpMethod.delete ||
-    request.method == HttpMethod.patch
-  )) {
+  if (request.method != HttpMethod.post) {
     return methodNotAllowed();
   }
 
@@ -76,10 +55,6 @@ Future<Response> onRequest(RequestContext context) async {
   // Redirect to function depending on method
   if (request.method == HttpMethod.post) {
     return postRequest(request, json, logger);
-  } else if (request.method == HttpMethod.delete) {
-    return deleteRequest(request, json, logger);
-  } else if (request.method == HttpMethod.patch) {
-    return patchRequest(request, json, logger);
   }
 
   // Should not reach here !=(500)
@@ -95,27 +70,26 @@ Future<Response> postRequest(
 ) async {
   /// POST
 
+  // Log post string
   logger.info('post');
+
   // Validate fields !=(400)
   final ci = json['ci'];
   final firstName = json['first_name'];
   final lastName = json['last_name'];
   final role = json['role'];
-  if (
-    ci == null || ci is! String ||
-    !isStringFieldValid(ci) ||
-    firstName == null ||firstName is! String ||
-    !isStringFieldValid(firstName) ||
-    lastName == null || lastName is! String ||
-    !isStringFieldValid(lastName)
-  ) {
+  if (!customHas(
+    json,
+    requiredHeaders: ['ci', 'first_name', 'last_name'],
+    optionalHeaders: ['role'],
+  )) {
     return badRequest();
   }
-  if (!isCiValid(ci)) {
+  if (!isCiValid(ci as String)) {
     return badRequest();
   }
   if (role != null && !(role is String && isRole(role))) {
-    return badRequest(msg: '$role');
+    return badRequest();
   }
 
   // Defines request to create user in Firebase Authentication
@@ -162,107 +136,4 @@ Future<Response> postRequest(
   // Returns appropiate response
   logger.normal('user with ci: $ci created');
   return Response(statusCode: 201);
-}
-
-
-Future<Response> deleteRequest(
-  Request request,
-  Map<String, dynamic> json,
-  RequestLogger logger,
-) async {
-  /// DELETE
-
-  // Validate fields !=(400)
-  final ci = json['ci'];
-  if (
-    ci == null || ci is! String ||
-    !isStringFieldValid(ci)
-  ) {
-    return badRequest();
-  }
-
-  // Calls Firebase Auth to delete user !=(503)
-  try {
-    // Auth delete
-    await auth.deleteUser(ci);
-    // Users collection delete
-    await firestore.collection(usersCollection).doc(ci).delete();
-    // Classes/students delete
-    await userSeekAndDestroy(ci);
-  } catch (err) {
-    if (err is FirebaseAuthAdminException) {
-      if (err.errorCode == AuthClientErrorCode.userNotFound) {
-        return notFound();
-      }
-      return serviceUnavailable(msg: err.message);
-    } else {
-      logger.log(Severity.error, err.toString());
-      return serviceUnavailable(msg: 'Unexpected error.');
-    }
-  }
-
-  // Returns appropiate response
-  logger.log(Severity.normal, 'user with ci: $ci deleted');
-  return Response(statusCode: 204);
-}
-
-
-Future<Response> patchRequest(
-  Request request,
-  Map<String, dynamic> json,
-  RequestLogger logger,
-) async {
-  /// PATCH
-
-  // Validate fields !=(400)
-  final ci = json['ci'];
-  final firstName = json['first_name'];
-  final lastName = json['last_name'];
-  if (
-    ci == null || ci is! String || !isCiValid(ci) ||
-    !isStringFieldValid(ci)
-  ) {
-    return badRequest();
-  }
-  if (
-    firstName != null &&
-    !(firstName is String && isStringFieldValid(firstName))
-  ) {
-    return badRequest();
-  }
-  if (
-    lastName != null &&
-    !(lastName is String && isStringFieldValid(lastName))
-  ) {
-    return badRequest();
-  }
-
-  // Form request for update
-  final newRequest = <String, dynamic>{};
-  if (firstName != null) {
-    newRequest['first_name'] = firstName;
-  }
-  if (lastName != null) {
-    newRequest['last_name'] = lastName;
-  }
-
-  // Firestore call
-  try {
-    await firestore.collection('users').doc(ci).update(newRequest);
-    await userSeekAndUpdate(ci, newRequest);
-  } catch  (err) {
-    if (err is FirebaseFirestoreAdminException) {
-      // TODO(ILoveChairs): Search for document not found error code on update
-      if (err.code == '') {
-        return notFound();
-      } else {
-        return serviceUnavailable();
-      }
-    } else {
-      return internalServerError();
-    }
-  }
-
-  // Return appropiate response (200)
-  return Response();
 }
