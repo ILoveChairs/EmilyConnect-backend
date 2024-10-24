@@ -32,14 +32,6 @@ Handler httpRestrictions(Handler handler) {
       return uriTooLong();
     }
 
-    // Check that headers are not too long !=(431)
-    if (
-      request.headers.length > 20 ||
-      (request.headers.values.any((header) => header.length > 256))
-    ) {
-      return requestHeaderFieldsTooLarge();
-    }
-
     // Check that accept has json !=(406)
     final accept = request.headers['Accept'];
     if (accept == null || !(
