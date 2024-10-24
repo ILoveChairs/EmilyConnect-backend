@@ -10,30 +10,39 @@ import '../../../utils/header_utils.dart';
 import '../../../utils/responses.dart';
 import '../../../utils/user_seek_and_destroy.dart';
 
+/// # PATH: /user/{ci}
+/// 
+/// Allowed methods: [OPTIONS, DELETE, PATCH]
+/// 
+/// Non-specific errors: 405, 406, 415, 401, 403, 400 => {
+///  "error": {string},
+///  "msg": {string}
+/// }
+/// 
+/// ## => DELETE
+/// 
+/// On success: 204
+/// 
+/// On error: 400, 404, 503 => {"error": {string}, "msg": {string}}
+/// 
+/// ## => PATCH
+/// 
+/// Required headers: {"Content-Type": "application/json"}
+/// 
+/// Expected PATCH body: {
+///  first_name: {string} (optional),
+///  last_name: {string} (optional)
+/// }
+/// 
+/// On success: 200
+/// 
+/// On error: 400, 404, 503 => {"error": {string}, "msg": {string}}
+/// 
+/// ---------------------------------------------------------------
+/// 
+/// Handles update and deletion of singular users.
+/// 
 Future<Response> onRequest(RequestContext context, String userCi) async {
-  /// PATH: /user/[ci]
-  /// ALLOWED METHODS: [OPTIONS, DELETE, PATCH]
-  /// NON-SPECIFIC ERRORS: 405, 406, 415, 401, 403, 400 => {
-  ///  'error': <string>,
-  ///  'msg': <string>
-  /// }
-  /// 
-  /// => DELETE
-  /// ON SUCCESS: 204
-  /// ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
-  /// 
-  /// => PATCH
-  /// REQUIRED HEADERS: {'Content-Type': 'application/json'}
-  /// EXPECTED PATCH BODY: {
-  ///  first_name: <string> (optional),
-  ///  last_name: <string> (optional)
-  /// }
-  /// ON SUCCESS: 200
-  /// ON ERROR: 400, 404, 503 => {'error': <string>, 'msg': <string>}
-  /// 
-  /// Handles update and deletion of singular users.
-  /// 
-
   // Init logger
   final logger = context.read<RequestLogger>();
 
@@ -70,13 +79,12 @@ Future<Response> onRequest(RequestContext context, String userCi) async {
 }
 
 
+/// DELETE
 Future<Response> deleteRequest(
   Request request,
   String userCi,
   RequestLogger logger,
 ) async {
-  /// DELETE
-
   // Validate ci !=(400)
   if (
     !isStringFieldValid(userCi)
@@ -108,14 +116,13 @@ Future<Response> deleteRequest(
 }
 
 
+/// PATCH
 Future<Response> patchRequest(
   Request request,
   String userCi,
   Map<String, dynamic> json,
   RequestLogger logger,
 ) async {
-  /// PATCH
-
   // Validate fields !=(400)
   final firstName = json['first_name'];
   final lastName = json['last_name'];
