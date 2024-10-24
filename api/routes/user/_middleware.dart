@@ -50,6 +50,8 @@ Handler httpRestrictions(Handler handler) {
       return notAcceptable();
     }
 
+    // TODO(ILoveChairs): Auth
+
     // POST and PATCH specific
     if (
       request.method == HttpMethod.post ||
@@ -89,8 +91,6 @@ Handler httpRestrictions(Handler handler) {
         return unsopportedMediaType();
       }
     }
-
-    // TODO(ILoveChairs): Auth
 
     // Let it transfer to route
     final response = await handler(context);

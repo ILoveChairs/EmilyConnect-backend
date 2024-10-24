@@ -14,48 +14,40 @@ Updates may be added in the future.
 
 Endpoints will also be passed to a yaml probably.
 
+## How to run
+
+In the build folder there should be a dockerfile where you can run it from,
+else you can install dart_frog_cli, enter the api folder and run dart_frog dev.
+
+For it to work you'll need the Firebase keys to do operations directly to it.
+
 ## Endpoints:
 
-For all endpoints the following is required:
+For most endpoints the following is required:
 - Headers: {"Content-Type": "application/json"}
+- Accept: {"Accept": "application/json"}
+DELETE /user/{ci} does not need the previous.
 
 Generic errors:
-- 405, 406, 415, 401, 403, 400 => {"error": (string), "msg": (string)}
+- 414, 431, 406, 400, 411, 413, 415, 401, 403 => {
+    "error": (string), "msg": (string)
+}
 
-&emsp;
+### => /user/
 
-=> /user/
+#### -> POST
 
--> POST
-- EXPECTED POST BODY: {
+- Expected POST body for singular users: {
  "ci": (string),
  "first_name": (string),
  "last_name": (string),
  "role": (string) (optional)
 }
-- ON SUCCESS: 201
-- ON ERROR: 400, 409, 503 => {"error": (string), "msg": (string)}
+- On success: 201
+- On error: 400, 409, 503 => {"error": (string), "msg": (string)}
 
-&emsp;
-
--> DELETE
-
-- EXPECTED DELETE BODY: {
- "ci": (string)
-}
-
-- ON SUCCESS: 204
-
-- ON ERROR: 400, 404, 503 => {"error": (string), "msg": (string)}
-
-&ensp;
-
-=> /user/multiple
-
--> POST
-
-- EXPECTED POST BODY: {
- users: [
+- Expected POST body for multiple users: {
+ "users": [
    ...
    {
      "ci": (string),
@@ -65,25 +57,36 @@ Generic errors:
    }
  ]
 }
+- On success: 200 => {"results": {...(ci): (string)}}
+- On error: 400 => {"error": (string), "msg": (string)}
 
-- ON SUCCESS: 200 => {"results": {...(ci): (string)}}
+#### -> DELETE
 
-- ON ERROR: 400 => {"error": (string), "msg": (string)}
-
-&emsp;
-
--> DELETE
-
-- EXPECTED DELETE BODY: {
+- Expected DELETE body for multiple users: {
  users: [
    ...
    "ci": (string)
  ]
 }
+- On success: 200 => {"results": [...(string)]}
+- On error: 400 => {"error": (string), "msg": (string)}
 
-- ON SUCCESS: 200 => {"results": [...(string)]}
+&emsp;
+&emsp;
 
-- ON ERROR: 400 => {"error": (string), "msg": (string)}
+### => /user/{ci}
+
+#### -> PATCH
+- Expected PATCH body for singular users: {
+ "first_name": (string),
+ "last_name": (string),
+}
+- On success: 200
+- On error: 400, 404, 503 => {"error": (string), "msg": (string)}
+
+#### -> DELETE
+- On success: 204
+- On error: 400, 404, 503 => {"error": (string), "msg": (string)}
 
 ## Licence
 
