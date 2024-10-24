@@ -17,12 +17,27 @@ import 'package:dart_firebase_admin/firestore.dart';
 /// https://github.com/invertase/dart_firebase_admin?tab=readme-ov-file#connecting-to-the-sdk
 /// 
 
-final admin = FirebaseAdminApp.initializeApp(
-  'emilyconnect-6e047',
-  Credential.fromServiceAccount(
-    File('./private_key.json'),
-  ),
-);
+
+FirebaseAdminApp getApp({bool productionMode = true}) {
+  const proyectId = 'emilyconnect-6e047';
+  if (productionMode) {
+    return FirebaseAdminApp.initializeApp(
+      proyectId,
+      Credential.fromApplicationDefaultCredentials(),
+    );
+  } else {
+    return FirebaseAdminApp.initializeApp(
+      proyectId,
+      Credential.fromServiceAccount(
+        File('./private_key.json'),
+      ),
+    );
+  }
+}
+
+
+// ignore: avoid_redundant_argument_values
+final admin = getApp(productionMode: true);
 
 final firestore = Firestore(admin);
 final auth = Auth(admin);
