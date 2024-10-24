@@ -240,7 +240,7 @@ Future<Response> multiplePostRequest(
       return badRequest();
     }
   }
-  final checkedUserList = userList.cast<Map<String, Object>>();
+  final checkedUserList = userList.cast<Map<String, dynamic>>();
 
   // Creates request to create user
   final userRequestList = <CreateRequest>[];
