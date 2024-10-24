@@ -34,8 +34,8 @@ Handler httpRestrictions(Handler handler) {
 
     // Check that headers are not too long !=(431)
     if (
-      request.headers.length > 12 ||
-      (request.headers.values.any((header) => header.length > 128))
+      request.headers.length > 20 ||
+      (request.headers.values.any((header) => header.length > 256))
     ) {
       return requestHeaderFieldsTooLarge();
     }
