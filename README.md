@@ -1,4 +1,13 @@
-# Documentation
+# Emily Dickinson User API
+
+[![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
+[![License: MIT][license_badge]][license_link]
+[![Powered by Dart Frog](https://img.shields.io/endpoint?url=https://tinyurl.com/dartfrog-badge)](https://dartfrog.vgv.dev)
+
+[license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[license_link]: https://opensource.org/licenses/MIT
+[very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg
+[very_good_analysis_link]: https://pub.dev/packages/very_good_analysis
 
 ## Description
 
@@ -26,6 +35,7 @@ For it to work you'll need the Firebase keys to do operations directly to it.
 For most endpoints the following is required:
 - Headers: {"Content-Type": "application/json"}
 - Accept: {"Accept": "application/json"}
+
 DELETE /user/{ci} does not need the previous.
 
 Generic errors:
@@ -37,16 +47,18 @@ Generic errors:
 
 #### -> POST
 
-- Expected POST body for singular users: {
+- Singular user POST
+- - Expected body: {
  "ci": (string),
  "first_name": (string),
  "last_name": (string),
  "role": (string) (optional)
 }
-- On success: 201
-- On error: 400, 409, 503 => {"error": (string), "msg": (string)}
+- - On success: 201
+- - On error: 400, 409, 503 => {"error": (string), "msg": (string)}
 
-- Expected POST body for multiple users: {
+- Multiple users POST
+- - Expected body: {
  "users": [
    ...
    {
@@ -57,8 +69,8 @@ Generic errors:
    }
  ]
 }
-- On success: 200 => {"results": {...(ci): (string)}}
-- On error: 400 => {"error": (string), "msg": (string)}
+- - On success: 200 => {"results": {...(ci): (string)}}
+- - On error: 400 => {"error": (string), "msg": (string)}
 
 #### -> DELETE
 
@@ -87,7 +99,3 @@ Generic errors:
 #### -> DELETE
 - On success: 204
 - On error: 400, 404, 503 => {"error": (string), "msg": (string)}
-
-## Licence
-
-No.

@@ -4,8 +4,8 @@ import 'dart:async';
 
 import 'package:dart_firebase_admin/firestore.dart';
 
-import './firebase.dart';
-import './firestore_names.dart';
+import 'firebase.dart';
+import 'firestore_names.dart';
 
 
 Future<List<DocumentReference<Map<String, Object?>>>>
