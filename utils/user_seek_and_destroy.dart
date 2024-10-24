@@ -84,8 +84,15 @@ Future<void> teacherSeekAndUpdate(
   Map<String, dynamic> data,
 ) async {
   final courses = await teacherSeek(ci);
+  final dottedData = <String, String>{};
+  if (data['first_name'] != null) {
+    dottedData['teacher.first_name'] = data['first_name'] as String;
+  }
+  if (data['last_name'] != null) {
+    dottedData['teacher.last_name'] = data['last_name'] as String;
+  }
   for (final doc in courses) {
-    unawaited(doc.update(data));
+    unawaited(doc.update(dottedData));
   }
 }
 
