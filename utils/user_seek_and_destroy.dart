@@ -1,32 +1,111 @@
-
-
 import 'dart:async';
-
 import 'package:dart_firebase_admin/firestore.dart';
 
 import 'firebase.dart';
 import 'firestore_names.dart';
 
 
+/// Gets all courses, gets a reference of their students subcollections,
+/// and checks whether the student exists with a get and a try catch.
 Future<List<DocumentReference<Map<String, Object?>>>>
-userSeek(String ci) async {
-  return (await firestore.collection(coursesCollection).get())
+studentSeek(String ci) async {
+  final refs = (await firestore.collection(coursesCollection).get())
     .docs.map((doc) => firestore.collection('${doc.ref.path}/Students').doc(ci))
+    .toList();
+
+  final outputRefs = <DocumentReference<Map<String, Object?>>>[];
+  for (final ref in refs) {
+    try {
+      await ref.get();
+      outputRefs.add(ref);
+    } catch (err) {
+      // Do nothing
+    }
+  }
+  return outputRefs;
+}
+
+
+/// Gets all course collections that have a teacher with ci arg
+Future<List<DocumentReference<Map<String, Object?>>>>
+teacherSeek(String ci) async {
+  return (
+      await firestore.collection(coursesCollection)
+      .where('teacher.ci', WhereFilter.equal, ci).get()
+    )
+    .docs.map((doc) => doc.ref)
     .toList();
 }
 
 
-Future<void> userSeekAndDestroy(String ci) async {
-  final courses = await userSeek(ci);
+/// Deletes a student in non-users collections
+Future<void> studentSeekAndDestroy(String ci) async {
+  final courses = await studentSeek(ci);
   for (final doc in courses) {
     unawaited(doc.delete());
   }
 }
 
+/// ! Currently not in use
+/// Deletes a user in non-users collections
+/// * Should be called _before_ deleting the user in users collection
+Future<void> userSeekAndDelete(
+  String ci,
+) async {
+  final userData = (await firestore.collection(usersCollection).doc(ci).get())
+    .data();
+  if (userData == null) {
+    return;
+  }
 
-Future<void> userSeekAndUpdate(String ci, Map<String, dynamic> data) async {
-  final courses = await userSeek(ci);
+  final role = userData['role'];
+
+  if (role == null) {
+    await studentSeekAndDestroy(ci);
+  }
+}
+
+
+/// Updates students in non-users collections
+Future<void> studentSeekAndUpdate(
+  String ci,
+  Map<String, dynamic> data,
+) async {
+  final courses = await studentSeek(ci);
   for (final doc in courses) {
     unawaited(doc.update(data));
+  }
+}
+
+
+/// Updates teachers in non-users collections
+Future<void> teacherSeekAndUpdate(
+  String ci,
+  Map<String, dynamic> data,
+) async {
+  final courses = await teacherSeek(ci);
+  for (final doc in courses) {
+    unawaited(doc.update(data));
+  }
+}
+
+
+/// Update users in non-users collections
+Future<void> userSeekAndUpdate(
+  String ci,
+  Map<String, dynamic> data,
+) async {
+  final userData = (await firestore.collection(usersCollection).doc(ci).get())
+    .data();
+  if (userData == null) {
+    return;
+  }
+
+  final role = userData['role'];
+
+  if (role == null) {
+    await studentSeekAndUpdate(ci, data);
+  } else if (role == 'Teacher') {
+    await teacherSeekAndUpdate(ci, data);
   }
 }

@@ -73,7 +73,7 @@ Handler httpRestrictions(Handler handler) {
       // Check that content size is below limit !=(413)
       if (
         int.tryParse(contentSize) == null ||
-        int.parse(contentSize) > maxIndexContentSize
+        int.parse(contentSize) > maxContentSize
       ) {
         return contentTooLarge();
       }

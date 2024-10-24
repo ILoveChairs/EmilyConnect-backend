@@ -1,7 +1,5 @@
 
-
-const maxIndexContentSize = 256;
-const maxMultipleContentSize = 1024;
+const maxContentSize = 1073741824;
 
 
 bool isStringFieldValid(String str) {
