@@ -109,6 +109,8 @@ Future<void> userSeekAndUpdate(
 
   final role = cachedUser.userData!.role;
 
+  cachedUsers.addFromUpdate(ci, cachedUser, data);
+
   if (role == null) {
     await studentSeekAndUpdate(ci, data);
   } else if (role == 'Teacher') {

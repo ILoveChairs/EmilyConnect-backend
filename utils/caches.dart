@@ -64,6 +64,31 @@ class CachedUsers {
     return user;
   }
 
+  void addFromUpdate(
+    String ci,
+    TimedUser prevData,
+    Map<String, dynamic> updateData,
+  ) {
+    final userData = UserData(
+      updateData['first_name'] as String? ?? prevData.userData!.firstName,
+      updateData['last_name'] as String? ?? prevData.userData!.lastName,
+      role: prevData.userData!.role,
+    );
+
+    final user = TimedUser(ci, exists: true, userData: userData);
+    final repeat = getIndexOfFirstMatch(ci);
+    if (repeat != -1) {
+      cache
+        ..removeAt(repeat)
+        ..insert(0, user);
+    } else {
+      if (cache.length + 1 == limit) {
+        cache.removeLast();
+      }
+      cache.insert(0, user);
+    }
+  }
+
   /// Checks cache, if not in there or outdated calls firestore
   Future<TimedUser> get(String ci) async {
     // Cache check
@@ -72,10 +97,11 @@ class CachedUsers {
     // Cache hit
     if (repeat != -1) {
       final cachedUser = cache.elementAt(repeat);
-      if ((DateTime.now().difference(cachedUser.createdAt)) > timeLimit) {
+      if ((DateTime.now().difference(cachedUser.createdAt)) < timeLimit) {
         print('-- CACHE HIT --');
         return cachedUser;
       }
+      // Cache outdated
       print('-- HIT BUT OUTDATED --');
     }
 

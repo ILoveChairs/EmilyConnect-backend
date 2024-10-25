@@ -37,7 +37,7 @@ FirebaseAdminApp getApp({bool productionMode = true}) {
 
 
 // ignore: avoid_redundant_argument_values
-final admin = getApp(productionMode: true);
+final admin = getApp(productionMode: false);
 
 final firestore = Firestore(admin);
 final auth = Auth(admin);

@@ -1,8 +1,11 @@
 
+import 'package:dart_firebase_admin/auth.dart';
 import 'package:dart_frog/dart_frog.dart';
 import 'package:shelf_cors_headers/shelf_cors_headers.dart' as shelf;
 
+import '../../utils/caches.dart';
 import '../../utils/field_validations.dart';
+import '../../utils/firebase.dart';
 import '../../utils/responses.dart';
 
 Handler middleware(Handler handler) {
@@ -22,6 +25,7 @@ Handler middleware(Handler handler) {
 }
 
 
+/// Checks that requests are compliant
 Handler httpRestrictions(Handler handler) {
   return (context) async {
     // Rename
@@ -42,7 +46,29 @@ Handler httpRestrictions(Handler handler) {
       return notAcceptable();
     }
 
-    // TODO(ILoveChairs): Auth
+    /*
+     ! Framework does not allow auth
+    // Check that is authenticated !=(401)
+    final authHeader = request.headers['Authorization'];
+    if (
+      authHeader == null ||
+      !authHeader.startsWith('Bearer ') ||
+      authHeader == 'Bearer '
+    ) {
+      return unauthorized();
+    }
+    final idToken = authHeader.split('Bearer ')[1];
+    final tokenPayload = await getTokenPayload(idToken);
+    if (tokenPayload == null) {
+      return unauthorized(msg: 'Invalid credentials.');
+    }
+
+    // Check that is admin !=(403)
+    final requesterCi = tokenPayload.uid;
+    if (!(await isPermitted(requesterCi))) {
+      return forbidden();
+    }
+    */
 
     // POST and PATCH specific
     if (
@@ -88,4 +114,29 @@ Handler httpRestrictions(Handler handler) {
     final response = await handler(context);
     return response;
   };
+}
+
+
+/// Checks if the requester is logged in
+Future<DecodedIdToken?> getTokenPayload(String idToken) async {
+  try {
+    return await auth.verifyIdToken(idToken, checkRevoked: true);
+  // ignore: avoid_catching_errors
+  } catch (err) {
+    return null;
+  }
+}
+
+
+/// Checks if has permissions to access API endpoints
+Future<bool> isPermitted(String requesterCi) async {
+  final cachedUser = await cachedUsers.get(requesterCi);
+  if (!cachedUser.exists) {
+    return false;
+  }
+  final role = cachedUser.userData!.role;
+  if (role != 'Admin') {
+    return false;
+  }
+  return true;
 }
