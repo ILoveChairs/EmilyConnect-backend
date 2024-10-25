@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dart_firebase_admin/firestore.dart';
 
+import 'caches.dart';
 import 'firebase.dart';
 import 'firestore_names.dart';
 
@@ -52,13 +53,12 @@ Future<void> studentSeekAndDestroy(String ci) async {
 Future<void> userSeekAndDelete(
   String ci,
 ) async {
-  final userData = (await firestore.collection(usersCollection).doc(ci).get())
-    .data();
-  if (userData == null) {
+  final cachedUser = await cachedUsers.get(ci);
+  if (!cachedUser.exists) {
     return;
   }
 
-  final role = userData['role'];
+  final role = cachedUser.userData!.role;
 
   if (role == null) {
     await studentSeekAndDestroy(ci);
@@ -102,13 +102,12 @@ Future<void> userSeekAndUpdate(
   String ci,
   Map<String, dynamic> data,
 ) async {
-  final userData = (await firestore.collection(usersCollection).doc(ci).get())
-    .data();
-  if (userData == null) {
+  final cachedUser = await cachedUsers.get(ci);
+  if (!cachedUser.exists) {
     return;
   }
 
-  final role = userData['role'];
+  final role = cachedUser.userData!.role;
 
   if (role == null) {
     await studentSeekAndUpdate(ci, data);
