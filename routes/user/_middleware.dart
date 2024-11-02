@@ -16,7 +16,7 @@ Handler middleware(Handler handler) {
           shelf.corsHeaders(
             headers: {
               shelf.ACCESS_CONTROL_ALLOW_METHODS: allows,
-              shelf.ACCESS_CONTROL_ALLOW_ORIGIN: 'http://localhost',
+              shelf.ACCESS_CONTROL_ALLOW_ORIGIN: '*',
             },
           ),
         ),
