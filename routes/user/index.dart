@@ -160,12 +160,10 @@ Future<Response> postRequest(
 
   // Defines document data to create user in Firestore
   final userDoc = {
-      'first_name': firstName,
-      'last_name': lastName,
+    'first_name': firstName,
+    'last_name': lastName,
+    'role': role,
   };
-  if (role != null) {
-    userDoc['role'] = role as String;
-  }
 
   // Calls Firebase Auth and Firestore to create user !=(503)
   try {
@@ -265,16 +263,13 @@ Future<Response> multiplePostRequest(
     final ci = user['ci']! as String;
     final firstName = user['first_name']! as String;
     final lastName = user['last_name']! as String;
+    final role = user['role'] as String?;
     try {
       await auth.createUser(userRequestList[i]);
-      await firestore.collection(usersCollection).doc(ci).set(
-        user['role'] == null ? {
+      await firestore.collection(usersCollection).doc(ci).set({
           'first_name': firstName,
           'last_name': lastName,
-        } : {
-          'first_name': firstName,
-          'last_name': lastName,
-          'role': user['role'],
+          'role': role,
         },
       );
       results[ci] = 'User created';
